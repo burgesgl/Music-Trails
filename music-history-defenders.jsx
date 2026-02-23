@@ -1,0 +1,707 @@
+import { useState, useEffect, useRef, useCallback } from "react";
+
+// ═══ MUSIC HISTORY DEFENDERS v5.1 ═══
+// STEM Middle Academy · Created by Mr. Burgess
+
+// ─── VOCAB ────
+const VL=[
+  {r:["phonograph"],t:"Phonograph",d:"Early machine using cylinders to record and play back sound."},
+  {r:["daw","digital audio workstation"],t:"DAW",d:"Software for creating, recording, and organizing music."},
+  {r:["midi"],t:"MIDI",d:"Lets electronic instruments and computers communicate."},
+  {r:["sample","samples","sampled","sampling"],t:"Sample",d:"A short segment from an existing recording used as a building block."},
+  {r:["loop","loops","looping","looped"],t:"Loop",d:"A repeating recorded segment."},
+  {r:["synthesizer","synthesizers","synth","synths","synthesis"],t:"Synthesizer",d:"Electronic instrument generating audio signals to create new sounds."},
+  {r:["record","records","recorded","recording","recordings"],t:"Record",d:"To capture and store sounds for later reproduction."},
+  {r:["gatekeeper","gatekeepers","gatekeeping"],t:"Gatekeeper",d:"Those who control access to music distribution."},
+  {r:["turntable","turntables","turntablism"],t:"Turntable",d:"Record player DJs transformed into an instrument."},
+  {r:["breakbeat","breakbeats"],t:"Breakbeat",d:"Instrumental percussion section isolated and extended by DJs."},
+  {r:["analog"],t:"Analog",d:"Signals as continuous physical quantities."},
+  {r:["acoustic","acoustics"],t:"Acoustic",d:"Music without electronic amplification."},
+  {r:["payola"],t:"Payola",d:"Illegally paying DJs to play specific songs."},
+  {r:["master recording","masters"],t:"Master Recording",d:"Original recording — whoever owns it controls the music."},
+];
+function mv(w){const l=w.toLowerCase().replace(/[.,!?;:'"]/g,"");for(const v of VL)for(const r of v.r)if(l===r||(l.startsWith(r)&&l.length<=r.length+3))return v;return null;}
+function VT({text,nh=false}){if(!text)return null;return<>{text.split(/(\s+)/).map((w,i)=>{if(/^\s+$/.test(w))return<span key={i}>{w}</span>;const v=mv(w);if(v&&!nh)return<VW key={i} w={w} v={v}/>;if(v&&nh)return<span key={i} style={{color:"#fbbf24",fontWeight:"bold"}}>{w}</span>;return<span key={i}>{w}</span>;})}</>;}
+function VW({w,v}){const[h,sH]=useState(false);return<span className="relative inline-block" onMouseEnter={()=>sH(true)} onMouseLeave={()=>sH(false)} onTouchStart={()=>sH(x=>!x)} style={{color:"#fbbf24",fontWeight:"bold",borderBottom:"1px dashed #fbbf2466",cursor:"help"}}>{w}{h&&<span className="absolute z-50 left-0 bottom-full mb-1 px-3 py-2 rounded-lg shadow-xl" style={{background:"#1a1520",border:"1px solid #fbbf24",color:"#fde68a",width:"220px",fontSize:"11px",lineHeight:"1.5"}}><strong style={{color:"#fbbf24"}}>{v.t}:</strong> {v.d}</span>}</span>;}
+
+// ─── CONSTANTS ────
+const SKINS=["#FDEBD0","#F5D0A9","#D4A574","#A0764A","#6B4226","#3D2314"];
+const HCOLORS=["#1a1a1a","#3d2314","#8b4513","#d4a017","#c0392b","#2980b9","#8e44ad","#e84393","#f39c12","#1abc9c"];
+const HAIRS=["spiky","curly","long","short","mohawk","buns","fade","locs"];
+const OFITS=["#e74c3c","#3498db","#2ecc71","#f39c12","#9b59b6","#1abc9c","#e67e22","#e84393","#2c3e50","#ff6b6b"];
+const ACCS=["headphones","glasses","hat","bow","bandana"];
+const BODS=["round","medium","slender","tall","short"];
+
+// ─── AVATAR (fixed: no stray paths, clean face) ────
+function Av({av,size=80}){
+  const s=size,cx=s/2;
+  const bs={round:{bw:.26,bh:.22},medium:{bw:.2,bh:.2},slender:{bw:.16,bh:.22},tall:{bw:.18,bh:.26},short:{bw:.22,bh:.16}};
+  const b=bs[av.body]||bs.medium;
+  const hR=s*0.28,hY=s*0.32,bY=s*0.6;
+  const hair={
+    spiky:<path d={`M${cx-hR*.8} ${hY-hR*.3}L${cx-hR*.3} ${hY-hR*1.4}L${cx} ${hY-hR*1.1}L${cx+hR*.3} ${hY-hR*1.4}L${cx+hR*.8} ${hY-hR*.3}`} fill={av.hairColor}/>,
+    curly:<>{[-0.7,0,0.7].map((x,i)=><ellipse key={i} cx={cx+hR*x} cy={hY-hR*0.7} rx={hR*0.4} ry={hR*0.42} fill={av.hairColor}/>)}</>,
+    long:<><path d={`M${cx-hR} ${hY-hR*.4}Q${cx} ${hY-hR*1.3} ${cx+hR} ${hY-hR*.4}`} fill={av.hairColor}/><rect x={cx-hR*1.02} y={hY} width={hR*.35} height={hR*1.6} rx={hR*.15} fill={av.hairColor}/><rect x={cx+hR*.67} y={hY} width={hR*.35} height={hR*1.6} rx={hR*.15} fill={av.hairColor}/></>,
+    short:<path d={`M${cx-hR*.9} ${hY}Q${cx-hR*.95} ${hY-hR*1.1} ${cx} ${hY-hR*1}Q${cx+hR*.95} ${hY-hR*1.1} ${cx+hR*.9} ${hY}`} fill={av.hairColor}/>,
+    mohawk:<rect x={cx-hR*.18} y={hY-hR*1.5} width={hR*.36} height={hR*1.1} rx={hR*.12} fill={av.hairColor}/>,
+    buns:<><circle cx={cx-hR*.65} cy={hY-hR*.75} r={hR*.3} fill={av.hairColor}/><circle cx={cx+hR*.65} cy={hY-hR*.75} r={hR*.3} fill={av.hairColor}/><path d={`M${cx-hR*.75} ${hY-hR*.25}Q${cx} ${hY-hR} ${cx+hR*.75} ${hY-hR*.25}`} fill={av.hairColor}/></>,
+    fade:<path d={`M${cx-hR*.85} ${hY+hR*.1}Q${cx-hR*.9} ${hY-hR*.8} ${cx} ${hY-hR*.9}Q${cx+hR*.9} ${hY-hR*.8} ${cx+hR*.85} ${hY+hR*.1}`} fill={av.hairColor}/>,
+    locs:<>{[-0.6,-0.3,0,0.3,0.6].map((x,i)=><rect key={i} x={cx+hR*x-hR*.07} y={hY-hR*.5} width={hR*.14} height={hR*1.6} rx={hR*.06} fill={av.hairColor}/>)}</>,
+  };
+  const acc={
+    headphones:<><path d={`M${cx-hR*1.05} ${hY-hR*.05}Q${cx-hR*1.15} ${hY-hR} ${cx} ${hY-hR*1.05}Q${cx+hR*1.15} ${hY-hR} ${cx+hR*1.05} ${hY-hR*.05}`} stroke="#555" strokeWidth={s*.025} fill="none"/><ellipse cx={cx-hR*1.02} cy={hY+hR*.08} rx={hR*.15} ry={hR*.22} fill="#666"/><ellipse cx={cx+hR*1.02} cy={hY+hR*.08} rx={hR*.15} ry={hR*.22} fill="#666"/></>,
+    glasses:<><circle cx={cx-hR*.3} cy={hY+hR*.05} r={hR*.2} stroke="#777" strokeWidth={s*.015} fill="none"/><circle cx={cx+hR*.3} cy={hY+hR*.05} r={hR*.2} stroke="#777" strokeWidth={s*.015} fill="none"/><line x1={cx-hR*.1} y1={hY+hR*.05} x2={cx+hR*.1} y2={hY+hR*.05} stroke="#777" strokeWidth={s*.015}/></>,
+    hat:<><ellipse cx={cx} cy={hY-hR*.65} rx={hR*1.15} ry={hR*.2} fill="#2c3e50"/><rect x={cx-hR*.65} y={hY-hR*1.2} width={hR*1.3} height={hR*.58} rx={hR*.12} fill="#2c3e50"/></>,
+    bow:<><circle cx={cx} cy={hY-hR*.85} r={hR*.1} fill="#e74c3c"/><ellipse cx={cx-hR*.25} cy={hY-hR*.85} rx={hR*.18} ry={hR*.12} fill="#e74c3c"/><ellipse cx={cx+hR*.25} cy={hY-hR*.85} rx={hR*.18} ry={hR*.12} fill="#e74c3c"/></>,
+    bandana:<path d={`M${cx-hR*.9} ${hY-hR*.5}Q${cx} ${hY-hR*.72} ${cx+hR*.9} ${hY-hR*.5}`} stroke="#e74c3c" strokeWidth={s*.035} fill="none"/>,
+  };
+  return(
+    <svg viewBox={`0 0 ${s} ${s}`} width={size} height={size}>
+      {/* Body */}
+      <ellipse cx={cx} cy={bY+s*.06} rx={s*b.bw} ry={s*b.bh} fill={av.outfit}/>
+      {/* Arms */}
+      <ellipse cx={cx-s*.2} cy={bY+s*.04} rx={s*.06} ry={s*.1} fill={av.outfit} transform={`rotate(-12 ${cx-s*.2} ${bY+s*.04})`}/>
+      <ellipse cx={cx+s*.2} cy={bY+s*.04} rx={s*.06} ry={s*.1} fill={av.outfit} transform={`rotate(12 ${cx+s*.2} ${bY+s*.04})`}/>
+      {/* Hands */}
+      <circle cx={cx-s*.23} cy={bY+s*.13} r={s*.04} fill={av.skin}/>
+      <circle cx={cx+s*.23} cy={bY+s*.13} r={s*.04} fill={av.skin}/>
+      {/* Legs */}
+      <ellipse cx={cx-s*.07} cy={bY+s*.25} rx={s*.055} ry={s*.08} fill={av.skin}/>
+      <ellipse cx={cx+s*.07} cy={bY+s*.25} rx={s*.055} ry={s*.08} fill={av.skin}/>
+      {/* Shoes */}
+      <ellipse cx={cx-s*.07} cy={bY+s*.31} rx={s*.06} ry={s*.03} fill="#2c2c2c"/>
+      <ellipse cx={cx+s*.07} cy={bY+s*.31} rx={s*.06} ry={s*.03} fill="#2c2c2c"/>
+      {/* Hair (behind head) */}
+      {hair[av.hair]}
+      {/* Head */}
+      <circle cx={cx} cy={hY} r={hR} fill={av.skin}/>
+      {/* Eyes */}
+      <ellipse cx={cx-hR*.28} cy={hY+hR*.06} rx={hR*.11} ry={hR*.15} fill="#1a1a2e"/>
+      <ellipse cx={cx+hR*.28} cy={hY+hR*.06} rx={hR*.11} ry={hR*.15} fill="#1a1a2e"/>
+      {/* Eye highlights */}
+      <circle cx={cx-hR*.26} cy={hY+hR*.02} r={hR*.04} fill="#fff"/>
+      <circle cx={cx+hR*.3} cy={hY+hR*.02} r={hR*.04} fill="#fff"/>
+      {/* Smile - simple arc, no stray lines */}
+      <path d={`M${cx-hR*.12} ${hY+hR*.33}Q${cx} ${hY+hR*.45} ${cx+hR*.12} ${hY+hR*.33}`} stroke="#1a1a2e" strokeWidth={Math.max(1,s*.012)} fill="none" strokeLinecap="round"/>
+      {/* Blush */}
+      <ellipse cx={cx-hR*.48} cy={hY+hR*.22} rx={hR*.1} ry={hR*.05} fill="#f8a4a4" opacity=".3"/>
+      <ellipse cx={cx+hR*.48} cy={hY+hR*.22} rx={hR*.1} ry={hR*.05} fill="#f8a4a4" opacity=".3"/>
+      {/* Accessories */}
+      {(av.acc||[]).map(a=><g key={a}>{acc[a]}</g>)}
+    </svg>
+  );
+}
+
+// ─── HP BAR ────
+function HPBar({cur,max,label,color="#22c55e",w="100%"}){
+  const p=Math.max(0,Math.min(100,(cur/max)*100));
+  const c=p>50?color:p>25?"#f59e0b":"#ef4444";
+  return(
+    <div style={{width:w}}>
+      {label&&<div className="flex justify-between text-xs mb-0.5" style={{color:"#9ca3af"}}><span>{label}</span><span style={{color:c}}>{Math.max(0,cur)}/{max}</span></div>}
+      <div className="h-2.5 rounded-full overflow-hidden" style={{background:"#1a1a2a",border:"1px solid #333"}}>
+        <div className="h-full rounded-full transition-all duration-500" style={{width:`${p}%`,background:c}}/>
+      </div>
+    </div>
+  );
+}
+
+// ─── AUDIO ────
+function useAudio(){const c=useRef(null);return useCallback(()=>{if(!c.current)c.current=new(window.AudioContext||window.webkitAudioContext)();if(c.current.state==="suspended")c.current.resume();return c.current;},[]);}
+function drum(g,t){try{const c=g(),n=c.currentTime;if(t==="kick"){const o=c.createOscillator(),v=c.createGain();o.frequency.setValueAtTime(150,n);o.frequency.exponentialRampToValueAtTime(.01,n+.4);v.gain.setValueAtTime(.8,n);v.gain.exponentialRampToValueAtTime(.01,n+.4);o.connect(v).connect(c.destination);o.start(n);o.stop(n+.4);}else if(t==="snare"){const b=c.createBuffer(1,c.sampleRate*.15,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,3);const s=c.createBufferSource(),v=c.createGain();s.buffer=b;v.gain.setValueAtTime(.5,n);v.gain.exponentialRampToValueAtTime(.01,n+.15);s.connect(v).connect(c.destination);s.start(n);}else if(t==="hihat"){const b=c.createBuffer(1,c.sampleRate*.04,c.sampleRate),d=b.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/d.length,6);const s=c.createBufferSource(),v=c.createGain(),f=c.createBiquadFilter();s.buffer=b;f.type="highpass";f.frequency.value=7000;v.gain.value=.3;s.connect(f).connect(v).connect(c.destination);s.start(n);}else if(t==="clap"){for(let i=0;i<3;i++){const b=c.createBuffer(1,c.sampleRate*.02,c.sampleRate),d=b.getChannelData(0);for(let j=0;j<d.length;j++)d[j]=Math.random()*2-1;const s=c.createBufferSource(),v=c.createGain();s.buffer=b;v.gain.setValueAtTime(.4,n+i*.01);v.gain.exponentialRampToValueAtTime(.01,n+i*.01+.08);s.connect(v).connect(c.destination);s.start(n+i*.01);}}else{const o=c.createOscillator(),v=c.createGain();o.type=t.includes("sq")?"square":"triangle";o.frequency.value=parseFloat(t.replace(/[^0-9.]/g,""))||220;v.gain.setValueAtTime(.3,n);v.gain.exponentialRampToValueAtTime(.01,n+.3);o.connect(v).connect(c.destination);o.start(n);o.stop(n+.3);}}catch(e){}}
+
+// ─── BEAT MACHINE ────
+function BeatMachine({onClose}){
+  const g=useAudio();const[lit,sL]=useState(null);const[rec,sR]=useState(false);const[rd,sD]=useState([]);const[pl,sP]=useState(false);const st=useRef(0);const pr=useRef([]);
+  const pads=[{l:"KICK",c:"#e74c3c",t:"kick"},{l:"SNARE",c:"#3498db",t:"snare"},{l:"HI-HAT",c:"#f39c12",t:"hihat"},{l:"CLAP",c:"#2ecc71",t:"clap"},{l:"LOW",c:"#9b59b6",t:"tri110"},{l:"MID",c:"#e67e22",t:"tri220"},{l:"HIGH",c:"#1abc9c",t:"tri440"},{l:"TOP",c:"#e84393",t:"sq660"}];
+  const hit=(p,i)=>{drum(g,p.t);sL(i);setTimeout(()=>sL(null),120);if(rec)sD(r=>[...r,{t:Date.now()-st.current,pad:i,type:p.t}]);};
+  const play=()=>{if(!rd.length||pl)return;sP(true);pr.current=rd.map(r=>setTimeout(()=>{drum(g,r.type);sL(r.pad);setTimeout(()=>sL(null),100);},r.t));setTimeout(()=>sP(false),Math.max(...rd.map(r=>r.t))+300);};
+  return(
+    <div className="text-center">
+      <div className="text-lg font-bold mb-1" style={{color:"#fbbf24"}}>🥁 Beat Machine</div>
+      <div className="text-xs mb-3" style={{color:"#9ca3af"}}>Tap pads. Record your beat and play it back!</div>
+      <div className="grid grid-cols-4 gap-2 max-w-xs mx-auto mb-3">
+        {pads.map((p,i)=><button key={i} onClick={()=>hit(p,i)} className="aspect-square rounded-xl flex items-center justify-center active:scale-90" style={{background:lit===i?p.c:`${p.c}22`,border:`2px solid ${p.c}${lit===i?"":"66"}`}}><span className="text-xs font-bold" style={{color:p.c}}>{p.l}</span></button>)}
+      </div>
+      <div className="flex justify-center gap-2 mb-3">
+        {!rec?<button onClick={()=>{sD([]);st.current=Date.now();sR(true);}} className="px-3 py-1.5 rounded-lg text-xs" style={{background:"#ef444422",border:"1px solid #ef4444",color:"#ef4444",cursor:"pointer"}}>⏺ Record</button>
+        :<button onClick={()=>sR(false)} className="px-3 py-1.5 rounded-lg text-xs" style={{background:"#ef444433",border:"1px solid #ef4444",color:"#ef4444",cursor:"pointer"}}>⏹ Stop ({rd.length})</button>}
+        <button onClick={pl?()=>{pr.current.forEach(clearTimeout);sP(false);}:play} disabled={!rd.length} className="px-3 py-1.5 rounded-lg text-xs" style={{background:rd.length?"#22c55e22":"transparent",border:`1px solid ${rd.length?"#22c55e":"#333"}`,color:rd.length?"#22c55e":"#555",cursor:rd.length?"pointer":"default"}}>{pl?"⏹":"▶"} ({rd.length})</button>
+      </div>
+      <button onClick={onClose} className="px-4 py-1.5 rounded-lg text-sm" style={{background:"#fbbf2422",border:"1px solid #fbbf24",color:"#fbbf24",cursor:"pointer"}}>✓ Done</button>
+    </div>
+  );
+}
+
+// ─── SEQUENCER ────
+function Seq16({onClose}){
+  const g=useAudio();const[gr,sG]=useState(Array(4).fill(null).map(()=>Array(16).fill(false)));const[pl,sP]=useState(false);const[step,sS]=useState(0);const ir=useRef(null);
+  const rows=[{l:"KICK",c:"#e74c3c",t:"kick"},{l:"SNARE",c:"#3498db",t:"snare"},{l:"HAT",c:"#f39c12",t:"hihat"},{l:"CLAP",c:"#2ecc71",t:"clap"}];
+  useEffect(()=>{if(pl){let s=0;ir.current=setInterval(()=>{sS(s);gr.forEach((row,r)=>{if(row[s%16])drum(g,rows[r].t);});s=(s+1)%16;},200);}else clearInterval(ir.current);return()=>clearInterval(ir.current);},[pl,gr]);
+  return(
+    <div className="text-center">
+      <div className="text-lg font-bold mb-1" style={{color:"#fbbf24"}}>🎛️ 16-Step Sequencer</div>
+      <div className="overflow-x-auto"><div className="inline-block">{rows.map((row,r)=><div key={r} className="flex items-center gap-0.5 mb-0.5"><span className="text-xs w-10 text-right mr-1" style={{color:row.c}}>{row.l}</span>{gr[r].map((on,c)=><button key={c} onClick={()=>sG(g=>{const n=g.map(r=>[...r]);n[r][c]=!n[r][c];return n;})} className="w-5 h-5 rounded-sm" style={{background:on?row.c:(pl&&step===c)?`${row.c}44`:"#111",border:`1px solid ${(pl&&step===c)?"#fff":on?row.c:"#222"}`}}/>)}</div>)}</div></div>
+      <div className="flex justify-center gap-2 mt-2">
+        <button onClick={()=>sP(!pl)} className="px-3 py-1.5 rounded-lg text-xs" style={{background:pl?"#ef444422":"#22c55e22",border:`1px solid ${pl?"#ef4444":"#22c55e"}`,color:pl?"#ef4444":"#22c55e",cursor:"pointer"}}>{pl?"⏹ Stop":"▶ Play"}</button>
+        <button onClick={()=>sG(Array(4).fill(null).map(()=>Array(16).fill(false)))} className="px-3 py-1.5 rounded-lg text-xs" style={{border:"1px solid #555",color:"#888",cursor:"pointer"}}>Clear</button>
+        <button onClick={onClose} className="px-3 py-1.5 rounded-lg text-xs" style={{background:"#fbbf2422",border:"1px solid #fbbf24",color:"#fbbf24",cursor:"pointer"}}>✓ Done</button>
+      </div>
+    </div>
+  );
+}
+
+// ─── SAVE ────
+function enc6(s){try{const j=JSON.stringify(s);let h=0;for(let i=0;i<j.length;i++)h=((h<<5)-h+j.charCodeAt(i))|0;const c=Math.abs(h%900000+100000).toString();try{localStorage.setItem(`mhd-${c}`,j);}catch(e){}return c;}catch{return"000000";}}
+function dec6(c){try{return JSON.parse(localStorage.getItem(`mhd-${c}`));}catch{return null;}}
+
+// ─── RIVAL ────
+const RI=[
+  {text:"A shadow appears. 'So YOU'RE the one sent to protect the timeline. Why does any of this matter?'",ch:[{text:"Music brings people together. Every era built something worth defending.",sc:{g:2,d:0,s:1}},{text:"Without these innovations, millions would never have found their voice.",sc:{g:0,d:2,s:1}},{text:"I don't need to explain myself. I'm here.",sc:{g:1,d:1,s:2}}]},
+  {text:"'What if the powerful were RIGHT to keep music in their hands? What if letting everyone create just diluted it?'",ch:[{text:"Have you HEARD what people make when they get access? Beautiful chaos!",sc:{g:2,d:0,s:1}},{text:"Art isn't about perfection. It's about expression.",sc:{g:0,d:2,s:0}},{text:"That argument has been wrong every time. Next.",sc:{g:0,d:1,s:2}}]},
+  {text:"'Fine. I'll be at every stop. If you can't prove this history matters — I'll rewrite it all.'",ch:[{text:"Then this is gonna be fun!",sc:{g:2,d:1,s:0}},{text:"Every person who ever picked up a mic is counting on me.",sc:{g:0,d:2,s:1}},{text:"See you there. Bring better arguments.",sc:{g:0,d:0,s:2}}]},
+];
+const RV={goofy:{name:"Wack",color:"#a855f7",intro:"A figure in a glitching purple coat. 'Name's WACK! I'm here to remix history — MY version is more fun.'"},dramatic:{name:"Erasure",color:"#dc2626",intro:"The air drops ten degrees. 'I am ERASURE. Sound was never meant to be captured.'"},snarky:{name:"Skip",color:"#0ea5e9",intro:"Someone in reflective shades slow-claps. 'Name's SKIP. I skip everything before last Tuesday.'"}};
+
+// ─── CHAPTERS ────
+const CHS=[
+  {id:"edison",title:"Edison's Lab",yr:"1877",icon:"📯",mx:8,my:65,scenes:[
+    {who:"narrator",text:"Menlo Park, New Jersey. 1877. A man with wild hair waves you to his workbench."},
+    {who:"edison",name:"Thomas Edison",c:"#d4a017",text:"I call it the phonograph. Before today, music only existed in the moment. Once the sound faded — gone forever."},
+    {who:"edison",name:"Thomas Edison",c:"#d4a017",text:"But this machine can record sound AND play it back. For the first time, sound can be SAVED."},
+    {who:"rival",text:"RIVAL appears. 'A scratchy cylinder. What if this was never built? Music stays pure. In the hands of REAL performers.'"},
+    {who:"you",text:"That means only the privileged few experience it. Edison's phonograph is the first step toward EVERYONE having access."},
+    {who:"rival",text:"'Access. Not everyone DESERVES access.' They vanish."},
+  ],qs:[
+    {q:"What makes Edison's phonograph fundamentally different from every instrument before it?",ch:["It produces louder sound than acoustic instruments","It captures sound AND reproduces it — the first time sound can be preserved","It uses electricity to enhance performances","It allows multiple musicians to play simultaneously"],a:1,fb:"The phonograph captures sound vibrations through a needle carving grooves. Before this, if you missed a performance, you never heard it."},
+    {q:"Before recordings, what was the main barrier to hearing famous musicians?",ch:["Radio signals weren't strong enough","Instruments were too expensive","You had to be physically present, which required money and proximity","Musicians refused large audiences"],a:2,fb:"Geography and economics were the original gatekeepers."},
+  ]},
+  {id:"berliner",title:"Berliner's Workshop",yr:"1890s",icon:"💿",mx:22,my:48,scenes:[
+    {who:"narrator",text:"Washington D.C., the 1890s. Emile Berliner holds up a gleaming flat disc."},
+    {who:"berliner",name:"Emile Berliner",c:"#8b4513",text:"Edison's cylinders must be individually recorded. My flat discs can be PRESSED like coins — thousands from a single master!"},
+    {who:"rival",text:"RIVAL materializes. 'The birth of the record label. Gatekeepers. Your \"access\" always comes with strings attached.'"},
+    {who:"you",text:"Mass production means a factory worker can own the same music a millionaire does."},
+  ],qs:[
+    {q:"Why did Berliner's format transform the music BUSINESS more than Edison's cylinder?",ch:["Higher quality audio","Mass production from a single master made music affordable to distribute widely","Lighter to carry","Stored more minutes per side"],a:1,fb:"One master → thousands of copies. Music became an affordable consumer product."},
+    {q:"What makes record labels 'gatekeepers'?",ch:["They manufacture discs and set prices","They control who gets recorded, how music is promoted, and own the master recordings","They schedule concerts and tours","They write songs artists perform"],a:1,fb:"Labels fund studio time, control promotion/distribution, and own the masters."},
+  ]},
+  {id:"superstars",title:"Recording Superstars",yr:"1900s–1950s",icon:"⭐",mx:36,my:35,scenes:[
+    {who:"narrator",text:"Recording technology has created something new: the MUSIC CELEBRITY."},
+    {who:"caruso",name:"Enrico Caruso",c:"#b8860b",text:"Before records, only those in my concert hall heard me. Now my voice travels to every country."},
+    {who:"bessie",name:"Bessie Smith",c:"#8b2252",text:"They call me the Empress of the Blues. My recordings went places I could never go in person."},
+    {who:"rival",text:"RIVAL watches. 'Superstars. A handful chosen by labels while thousands are ignored.'"},
+    {who:"you",text:"Bessie's recordings served as a cultural bridge — spreading music across boundaries performers couldn't cross."},
+  ],qs:[
+    {q:"Bessie Smith's recordings spread blues nationally. What broader impact?",ch:["Increased her label's sales","Served as a cultural bridge, carrying Black musical traditions to new audiences","Established Nashville as music center","Led to radio invention"],a:1,fb:"Bessie's recordings crossed geographic and racial boundaries she couldn't cross in person."},
+    {q:"Caruso (records), Crosby (radio), Elvis (TV+vinyl+radio) — what pattern emerges?",ch:["Each technology made music louder","New distribution technologies created new pathways to fame, expanding who could be reached","Earliest adopters always succeeded most","Technology replaced talent"],a:1,fb:"The pattern is about REACH. Each medium opened new channels."},
+  ]},
+  {id:"motown",title:"Labels & Motown",yr:"1920s–1960s",icon:"🏢",mx:50,my:50,scenes:[
+    {who:"narrator",text:"The industry booms. Labels control which voices reach the public. The Payola Scandal reveals labels secretly PAID DJs to play songs."},
+    {who:"gordy",name:"Berry Gordy",c:"#2ecc71",text:"I founded Motown in Detroit, 1959. A Black-owned label achieving GLOBAL impact."},
+    {who:"rival",text:"RIVAL slow-claps. 'Gordy. You built a label — became a gatekeeper YOURSELF. Power concentrates. Always.'"},
+    {who:"gordy",name:"Berry Gordy",c:"#2ecc71",text:"I gave opportunities to artists SHUT OUT of every other label. We built our own door."},
+  ],qs:[
+    {q:"Why was Motown historically significant beyond being successful?",ch:["First to use multi-track recording","Black ownership achieving global mainstream success in a white-dominated industry","Largest label in the 1960s","Invented artist development"],a:1,fb:"In an industry where Black artists were exploited, Gordy built Black-owned infrastructure with global impact."},
+    {q:"The rival says Gordy became a gatekeeper too. How does this complicate 'access'?",ch:["Proves nothing ever changes","Expanding access is complex: new doors open but new power structures form, requiring ongoing innovation","Motown was ultimately harmful","Only technology can solve access"],a:1,fb:"Every innovation expands access AND creates new power structures. The story isn't a straight line."},
+  ]},
+  {id:"battle1",title:"⚔️ First Stand",yr:"Midpoint",icon:"⚔️",mx:62,my:38,type:"battle",prelude:[
+    {who:"rival",text:"RIVAL blocks your path. 'Halfway through. Edison gave recordings — labels grabbed control. Even Gordy became what he fought.'"},
+    {who:"you",text:"Every time gatekeepers locked the door, someone built a new one. That pattern doesn't stop."},
+  ],qs:[
+    {q:"Edison's phonograph was the first device to...",ch:["Amplify sound for audiences","Both capture and reproduce sound","Transmit sound over wires","Convert acoustic to digital"],a:1,dmg:110},
+    {q:"How did Berliner's disc change music from experience to product?",ch:["Better audio quality","Mass production from one master made music affordable at scale","Compatible with radio","Let artists record without labels"],a:1,dmg:110},
+    {q:"Labels are 'gatekeepers' because they control...",ch:["Volume levels of records","Who gets recorded, distribution, and ownership of masters","Genres legally permitted","Which instruments musicians use"],a:1,dmg:110},
+    {q:"Motown was significant because...",ch:["First stereo recording","Black ownership achieving global success challenged power in a white-dominated industry","Detroit was unusual for a label","First artists on television"],a:1,dmg:120},
+  ],rHP:400},
+  {id:"moog",title:"Moog & Synthesis",yr:"1960s",icon:"🎹",mx:68,my:25,scenes:[
+    {who:"narrator",text:"A workshop humming with electricity. Robert Moog flips a switch. A sound fills the room that has never existed."},
+    {who:"moog",name:"Robert Moog",c:"#4a90d9",text:"My synthesizer generates sound electronically — tones no acoustic instrument can make. And MIDI lets instruments talk to computers."},
+    {who:"rival",text:"RIVAL examines a cable. 'Machines replacing musicians. Real music comes from REAL instruments.'"},
+    {who:"you",text:"Stevie Wonder doesn't think synths are fake. They don't replace musicians — they expand expression."},
+  ],qs:[
+    {q:"How does a synthesizer generate sound differently from acoustic instruments?",ch:["Records and plays back existing sounds","Generates audio signals electronically, creating sounds with no acoustic equivalent","Uses sampling to recreate instruments","Amplifies quiet natural sounds"],a:1,fb:"Synthesizers CREATE — oscillators generate waveforms, filters shape them. A universe of new sounds."},
+    {q:"MIDI is significant because it allows...",ch:["Recording directly to vinyl","Electronic instruments and computers to share performance data like notes and timing","Audio compression for streaming","Instruments to auto-tune"],a:1,fb:"MIDI transmits INSTRUCTIONS, not sound. One musician can control an entire studio."},
+  ]},
+  {id:"dj",title:"Rise of the DJ",yr:"1973",icon:"🎧",mx:78,my:45,scenes:[
+    {who:"narrator",text:"August 11, 1973. 1520 Sedgwick Avenue, the Bronx. 25¢ for the ladies, 50¢ for the fellas."},
+    {who:"herc",name:"DJ Kool Herc",c:"#e74c3c",text:"The crowd dances hardest during the break. So I use TWO turntables with the SAME record to EXTEND it. The break never stops."},
+    {who:"rival",text:"RIVAL watches. 'Playing someone else's records. These aren't real musicians.'"},
+    {who:"herc",name:"DJ Kool Herc",c:"#e74c3c",text:"My sister needed school clothes. I had turntables. From necessity we created something the world will know."},
+    {who:"you",text:"Herc took a consumer device and reimagined it as a creative tool. No gatekeeper approved it."},
+  ],qs:[
+    {q:"DJ Kool Herc's innovation — extending breakbeats with two turntables — was significant because...",ch:["First music at a party","It transformed a playback device into a creative instrument, generating new arrangements","Turntables were louder than bands","First electronic equipment in music"],a:1,fb:"Herc CREATED music by manipulating recordings. A playback device became a creative instrument."},
+    {q:"Hip-hop emerged from a Bronx rec room, 25¢ admission, raising money for school clothes. This reveals...",ch:["Great music requires studios","Innovation often emerges from community and resourcefulness rather than institutional support","Genres only develop in cities","Movements require corporate sponsorship"],a:1,fb:"Cindy Campbell needed school clothes. Her brother had turntables. Innovation doesn't require permission."},
+  ]},
+  {id:"digital",title:"Digital Revolution",yr:"1990s–Today",icon:"💻",mx:88,my:30,scenes:[
+    {who:"narrator",text:"A DAW lets ANYONE create music. No studio. No label. No gatekeeper between an idea and the world hearing it."},
+    {who:"narrator",text:"Format evolution: Cylinders → Discs → Vinyl → Cassettes → CDs → MP3s → Streaming. Each step: more portable, more accessible."},
+    {who:"rival",text:"RIVAL appears. 'Anyone can make music now. But ALGORITHMS replaced labels. Platforms deciding who gets seen. New gatekeepers.'"},
+    {who:"you",text:"A kid in their bedroom CAN reach people now. The tools are in more hands than ever. That's the difference."},
+    {who:"rival",text:"'Then prove it. Everything you've learned. Show me this history matters.'"},
+  ],qs:[
+    {q:"A DAW fundamentally changes production because it...",ch:["Replaces musical talent","Allows anyone with a computer to create studio-quality music without expensive equipment","Auto-generates hit songs","Converts any recording to perfect pitch"],a:1,fb:"BandLab, GarageBand, Soundtrap — a full studio on a laptop."},
+    {q:"Bieber (YouTube), Lil Uzi Vert (SoundCloud), Beyoncé (surprise drops) represent...",ch:["The end of record labels","Artists building audiences through direct platforms, making gatekeepers optional not mandatory","All artists must use social media","Production quality is irrelevant"],a:1,fb:"The keyword is OPTIONAL. Labels exist but aren't the ONLY path anymore."},
+  ]},
+  {id:"final",title:"🏆 Final Stand",yr:"The Full Story",icon:"👑",mx:95,my:50,type:"battle",prelude:[
+    {who:"rival",text:"'Here we are. Edison to algorithms. Let's see if you learned anything.'"},
+    {who:"you",text:"Every innovation expanded access — AND created new gatekeepers. But the tools keep ending up in more hands."},
+  ],qs:[
+    {q:"Edison → Berliner → Superstars → Labels → Motown → Synths → DJs → DAWs. The pattern?",ch:["Each made previous formats obsolete","Each expanded who could create/distribute/access music — while generating new power structures","Technology replaced human creativity","Industry became less profitable"],a:1,dmg:110},
+    {q:"Rival says gatekeepers just 'rotate.' Is there still a meaningful difference between 1920 and today?",ch:["No difference — powerful always control music","Yes — creation tools are now individually accessible, even if distribution has gatekeepers","Only difference: quality declined","Today's gatekeepers are more fair"],a:1,dmg:110},
+    {q:"Herc's 1973 party and a student on SoundTrap share what principle?",ch:["Both need expensive equipment","Creativity + accessible technology enables self-expression without institutional permission","Both funded by labels","Entertainment without significance"],a:1,dmg:120},
+    {q:"MIDI + DAWs + Streaming together represent...",ch:["Full automation","Infrastructure that progressively removed barriers between an idea and sharing it globally","Proof training is unnecessary","End of live performance"],a:1,dmg:120},
+    {q:"If the theme is ACCESS, the most honest conclusion?",ch:["Access is complete, no barriers remain","Access expanded enormously, but algorithmic gatekeeping means the work is ongoing","Technology solved everything permanently","Access only matters for professionals"],a:1,dmg:140},
+  ],rHP:520},
+];
+
+// ─── POWERUPS ────
+const PUPS=[
+  {id:"hp1",name:"Edison's Resilience",desc:"+40 Max HP",icon:"💪",eff:"maxhp",val:40},
+  {id:"dmg1",name:"Berliner's Precision",desc:"+20% damage",icon:"⚡",eff:"dmg",val:.2},
+  {id:"shield",name:"Moog's Shield",desc:"Block one hit",icon:"🛡️",eff:"shield",val:1},
+  {id:"heal",name:"Bessie's Voice",desc:"+25 HP per correct",icon:"💚",eff:"heal",val:25},
+  {id:"combo",name:"Gordy's Groove",desc:"+20 per streak",icon:"🔥",eff:"combo",val:20},
+];
+
+// ═══ MAIN APP ═══
+export default function MusicHistoryDefenders() {
+  const [scr,setScr]=useState("title");
+  const [av,setAv]=useState({skin:SKINS[0],hair:"short",hairColor:HCOLORS[0],outfit:OFITS[0],acc:[],body:"medium"});
+  const [name,setName]=useState("");
+  const [rival,setRival]=useState(null);
+  const [rSc,setRSc]=useState({g:0,d:0,s:0});
+  const [rIdx,setRIdx]=useState(0);
+  const [progress,setProg]=useState(0);
+  const [chI,setChI]=useState(0);
+  const [scI,setScI]=useState(0);
+  const [qI,setQI]=useState(0);
+  const [ans,setAns]=useState(null);
+  const [hp,setHp]=useState(120);
+  const [mxHp,setMxHp]=useState(120);
+  const [score,setSc]=useState(0);
+  const [corr,setCorr]=useState(0);
+  const [totQ,setTotQ]=useState(0);
+  const [pups,setPups]=useState([]);
+  const [bSt,setBSt]=useState(null);
+  const [shopO,setShopO]=useState([]);
+  const [phase,setPhase]=useState("scene");
+  const [combo,setCombo]=useState(0);
+  const [sCode,setSCode]=useState("");
+  const [lCode,setLCode]=useState("");
+  const [showSave,setShowSave]=useState(false);
+  const ref=useRef(null);
+
+  useEffect(()=>{if(ref.current)ref.current.scrollTop=0;},[scr,phase,scI,qI,chI]);
+
+  const ch=CHS[chI];
+  const r=rival?RV[rival]:null;
+  const rc=r?.color||"#888";
+  const F={fontFamily:"'Palatino Linotype','Book Antiqua',Georgia,serif"};
+  const btn=(ok,c="#fbbf24")=>({background:ok?`${c}18`:"transparent",border:`1px solid ${ok?c:"#333"}`,color:ok?c:"#555",cursor:ok?"pointer":"default",...F});
+  const rt=(t)=>t?(r?t.replace(/RIVAL/g,r.name):t.replace(/RIVAL/g,"The Rival")):t;
+
+  const doSave=()=>{setSCode(enc6({av,name,rival,progress,hp,mxHp,score,corr,totQ,pups,combo}));};
+  const doLoad=()=>{const s=dec6(lCode);if(s){setAv(s.av);setName(s.name);setRival(s.rival);setProg(s.progress||0);setChI(s.progress||0);setHp(s.hp);setMxHp(s.mxHp);setSc(s.score);setCorr(s.corr);setTotQ(s.totQ);setPups(s.pups||[]);setCombo(s.combo||0);setScr("map");}};
+
+  const pickRival=(ci)=>{
+    const d=RI[rIdx],sc=d.ch[ci].sc;
+    const ns={g:rSc.g+sc.g,d:rSc.d+sc.d,s:rSc.s+sc.s};
+    setRSc(ns);
+    if(rIdx+1>=RI.length){
+      const t=ns.g>=ns.d&&ns.g>=ns.s?"goofy":ns.d>=ns.s?"dramatic":"snarky";
+      setRival(t);
+    }else setRIdx(rIdx+1);
+  };
+
+  const enterCh=(idx)=>{
+    setChI(idx);setScI(0);setQI(0);setAns(null);
+    const c=CHS[idx];
+    if(c.type==="battle"){setPhase("prelude");setScr("battle");setBSt({qI:0,rHP:c.rHP,maxRHP:c.rHP,ans:null,done:false});}
+    else{setPhase("scene");setScr("story");}
+  };
+
+  // ★ FIXED: advance progress after completing questions
+  const nextStep=()=>{
+    setAns(null);
+    if(phase==="scene"){
+      if(scI+1<ch.scenes.length)setScI(scI+1);
+      else{setPhase("question");setQI(0);}
+    }else if(phase==="question"){
+      if(qI+1<ch.qs.length)setQI(qI+1);
+      else{
+        const np=Math.max(progress,chI+1);
+        setProg(np);setChI(np);
+        if(np>=CHS.length)setScr("end");
+        else setScr("map");
+      }
+    }
+  };
+
+  const answerQ=(i)=>{
+    if(ans!==null)return;
+    setAns(i);setTotQ(t=>t+1);
+    if(i===ch.qs[qI].a){setSc(s=>s+50);setHp(h=>Math.min(mxHp,h+15));setCorr(c=>c+1);}
+  };
+
+  const battleAns=(i)=>{
+    if(!bSt||bSt.ans!==null)return;
+    const q=ch.qs[bSt.qI],ok=i===q.a;
+    setTotQ(t=>t+1);
+    let dmg=q.dmg,nc=combo;
+    if(ok){
+      setCorr(c=>c+1);nc=combo+1;setCombo(nc);setSc(s=>s+75);
+      const db=pups.filter(p=>p.eff==="dmg").reduce((s,p)=>s+p.val,0);
+      dmg=Math.round(dmg*(1+db));
+      const cb=pups.filter(p=>p.eff==="combo").reduce((s,p)=>s+p.val,0);
+      dmg+=cb*(nc-1);
+      const hl=pups.filter(p=>p.eff==="heal").reduce((s,p)=>s+p.val,0);
+      if(hl)setHp(h=>Math.min(mxHp,h+hl));
+    }else{
+      setCombo(0);nc=0;
+      const si=pups.findIndex(p=>p.eff==="shield");
+      if(si>=0)setPups(ps=>{const n=[...ps];n.splice(si,1);return n;});
+      else setHp(h=>Math.max(0,h-35));
+    }
+    const nrHP=ok?Math.max(0,bSt.rHP-dmg):bSt.rHP;
+    const last=bSt.qI+1>=ch.qs.length;
+    const done=nrHP<=0||last;
+    // ★ FIX: if all Qs answered, force rival to 0 HP
+    setBSt({...bSt,ans:i,rHP:done&&last&&nrHP>0?0:nrHP,done});
+  };
+
+  const nextB=()=>{
+    if(bSt.done){
+      const np=Math.max(progress,chI+1);setProg(np);setChI(np);
+      const avail=PUPS.filter(p=>!pups.find(pp=>pp.id===p.id));
+      const opts=[];while(opts.length<3&&avail.length>0)opts.push(avail.splice(Math.floor(Math.random()*avail.length),1)[0]);
+      if(opts.length>0){setShopO(opts);setScr("shop");}
+      else if(np>=CHS.length)setScr("end");
+      else setScr("map");
+      return;
+    }
+    setBSt({...bSt,qI:bSt.qI+1,ans:null});
+  };
+
+  const pickPup=(p)=>{
+    setPups(ps=>[...ps,p]);
+    if(p.eff==="maxhp"){setMxHp(m=>m+p.val);setHp(h=>h+p.val);}
+    if(chI>=CHS.length)setScr("end");
+    else setScr("map");
+  };
+
+  // ─── Speaker icon for dialogue ────
+  const spkIcon=(who)=>{
+    if(who==="you")return <Av av={av} size={44}/>;
+    const icons={edison:"📯",berliner:"💿",caruso:"🎤",bessie:"🎵",gordy:"🏢",moog:"🎹",herc:"🎧",narrator:"📖"};
+    return <div className="w-11 h-11 rounded-xl flex items-center justify-center text-xl" style={{background:"#0a0a1a",border:"1px solid #333"}}>{icons[who]||"📖"}</div>;
+  };
+
+  // ═══ TITLE ═══
+  if(scr==="title") return(
+    <div className="min-h-screen flex items-center justify-center p-4" style={{background:"linear-gradient(180deg,#050510 0%,#0a0518 50%,#0f0a05 100%)",...F}}>
+      <div className="w-full max-w-md rounded-2xl p-8" style={{background:"#0f0f1a",border:"1px solid #1e1e3a"}}>
+        <div className="text-center text-xs tracking-widest mb-4" style={{color:"#fbbf2488"}}>STEM MIDDLE ACADEMY</div>
+        <h1 className="text-center text-3xl font-bold mb-6" style={{color:"#fbbf24",textShadow:"0 0 30px #fbbf2444"}}>MUSIC HISTORY<br/>DEFENDERS</h1>
+        <div className="text-center text-2xl mb-6">📯 → 💿 → ⭐ → 🏢 → 🎹 → 🎧 → 💻 → 👑</div>
+        <div className="mb-4">
+          <div className="text-center text-xs mb-2" style={{color:"#9ca3af"}}>Enter your name, Defender:</div>
+          <input value={name} onChange={e=>setName(e.target.value)} onKeyDown={e=>e.key==="Enter"&&name.trim()&&setScr("creator")} placeholder="Your name..." maxLength={16} autoFocus className="block mx-auto text-center rounded-lg outline-none px-4 py-2.5" style={{background:"#0a0a14",border:"1px solid #fbbf2444",color:"#fbbf24",fontSize:"16px",width:"220px",...F}}/>
+        </div>
+        <button onClick={()=>name.trim()&&setScr("creator")} disabled={!name.trim()} className="block mx-auto px-6 py-2.5 rounded-lg" style={btn(name.trim())}>Create Your Defender →</button>
+        <div className="mt-6 pt-4 flex gap-2 justify-center" style={{borderTop:"1px solid #1a1a2a"}}>
+          <input value={lCode} onChange={e=>setLCode(e.target.value)} placeholder="6-digit code" maxLength={6} className="rounded-md px-3 py-1.5 text-xs outline-none w-24 text-center" style={{background:"#0a0a14",border:"1px solid #333",color:"#9ca3af"}}/>
+          <button onClick={doLoad} className="px-3 py-1.5 rounded-md text-xs" style={{background:"#1a1a2a",border:"1px solid #444",color:"#9ca3af",cursor:"pointer"}}>Load</button>
+        </div>
+        <div className="text-center mt-4 text-xs" style={{color:"#333"}}>Created by Mr. Burgess</div>
+      </div>
+    </div>
+  );
+
+  // ═══ CREATOR ═══
+  if(scr==="creator"){
+    const Opt=({label,items,cur,pick,render})=>(
+      <div className="mb-2.5"><div className="text-xs mb-1" style={{color:"#9ca3af"}}>{label}</div>
+        <div className="flex flex-wrap gap-1.5">{items.map((it,i)=>{
+          const sel=Array.isArray(cur)?cur.includes(it):cur===it;
+          return <button key={i} onClick={()=>pick(it)} className="w-8 h-8 rounded-lg flex items-center justify-center" style={{background:sel?"#fbbf2433":"#0a0a14",border:`2px solid ${sel?"#fbbf24":"#222"}`,cursor:"pointer"}}>{render?render(it):<div className="w-4 h-4 rounded-full" style={{background:it}}/>}</button>;
+        })}</div></div>
+    );
+    const toggleAcc=(a)=>setAv(v=>({...v,acc:v.acc.includes(a)?v.acc.filter(x=>x!==a):[...v.acc,a]}));
+    return(
+      <div className="min-h-screen flex items-center justify-center p-4" style={{background:"#050510",...F}}>
+        <div className="w-full max-w-md rounded-2xl p-5" style={{background:"#0f0f1a",border:"1px solid #1e1e3a"}}>
+          <div className="text-center text-lg font-bold mb-3" style={{color:"#fbbf24"}}>Create Your Defender</div>
+          <div className="flex justify-center mb-3"><Av av={av} size={100}/></div>
+          <div className="text-center text-sm mb-3 font-bold" style={{color:"#e5e7eb"}}>{name}</div>
+          <Opt label="Skin" items={SKINS} cur={av.skin} pick={v=>setAv({...av,skin:v})}/>
+          <Opt label="Hair Color" items={HCOLORS} cur={av.hairColor} pick={v=>setAv({...av,hairColor:v})}/>
+          <Opt label="Hair Style" items={HAIRS} cur={av.hair} pick={v=>setAv({...av,hair:v})} render={v=><span className="text-xs" style={{color:"#ccc"}}>{v.slice(0,3)}</span>}/>
+          <Opt label="Body" items={BODS} cur={av.body} pick={v=>setAv({...av,body:v})} render={v=><span className="text-xs" style={{color:"#ccc"}}>{v.slice(0,3)}</span>}/>
+          <Opt label="Outfit" items={OFITS} cur={av.outfit} pick={v=>setAv({...av,outfit:v})}/>
+          <div className="mb-2.5"><div className="text-xs mb-1" style={{color:"#9ca3af"}}>Accessories (multiple)</div>
+            <div className="flex flex-wrap gap-1.5">{ACCS.map(a=><button key={a} onClick={()=>toggleAcc(a)} className="px-2 py-1 rounded-lg text-xs" style={{background:av.acc.includes(a)?"#fbbf2433":"#0a0a14",border:`1px solid ${av.acc.includes(a)?"#fbbf24":"#333"}`,color:av.acc.includes(a)?"#fbbf24":"#888",cursor:"pointer"}}>{a}</button>)}</div>
+          </div>
+          <div className="flex gap-2 mt-3">
+            <button onClick={()=>setScr("title")} className="flex-1 py-2 rounded-lg text-sm" style={{background:"#1a1a2a",border:"1px solid #333",color:"#999",cursor:"pointer"}}>← Back</button>
+            <button onClick={()=>{setRIdx(0);setRSc({g:0,d:0,s:0});setRival(null);setScr("rival");}} className="flex-1 py-2 rounded-lg text-sm" style={btn(true)}>Begin →</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ═══ RIVAL INTRO ═══
+  if(scr==="rival"){
+    if(rival) return(
+      <div className="min-h-screen flex items-center justify-center p-4" style={{background:"#050510",...F}}>
+        <div className="w-full max-w-md rounded-2xl p-6" style={{background:"#0f0f1a",border:"1px solid #1e1e3a"}}>
+          <div className="text-center text-2xl font-bold mb-2" style={{color:rc}}>{r.name}</div>
+          <div className="text-center text-xs mb-3" style={{color:"#9ca3af"}}>Your rival revealed...</div>
+          <div className="p-4 rounded-xl mb-4" style={{background:"#0a0a18",border:`1px solid ${rc}22`}}>
+            <div className="text-sm leading-relaxed" style={{color:"#d1d5db"}}>{r.intro}</div>
+          </div>
+          <button onClick={()=>{setProg(0);setChI(0);setHp(120);setMxHp(120);setSc(0);setCorr(0);setTotQ(0);setPups([]);setCombo(0);setScr("map");}} className="block mx-auto px-6 py-2.5 rounded-lg" style={btn(true)}>▶ Begin Your Defense</button>
+        </div>
+      </div>
+    );
+    const d=RI[rIdx];
+    return(
+      <div className="min-h-screen flex items-center justify-center p-4" style={{background:"#050510",...F}}>
+        <div className="w-full max-w-md rounded-2xl p-6" style={{background:"#0f0f1a",border:"1px solid #1e1e3a"}}>
+          <div className="flex items-end gap-3 mb-4">
+            <Av av={av} size={44}/>
+            <div className="flex-1 p-3 rounded-xl" style={{background:"#0a0a18",border:"1px solid #333"}}>
+              <div className="text-sm leading-relaxed" style={{color:"#d1d5db"}}>{d.text}</div>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2">{d.ch.map((c,i)=><button key={i} onClick={()=>pickRival(i)} className="text-left px-4 py-2.5 rounded-xl text-sm hover:translate-x-1 transition-transform" style={{background:"#0f0f1a",border:"1px solid #333",color:"#d1d5db",cursor:"pointer",lineHeight:"1.5",...F}}>{c.text}</button>)}</div>
+          <div className="text-center text-xs mt-2" style={{color:"#555"}}>{rIdx+1}/{RI.length}</div>
+        </div>
+      </div>
+    );
+  }
+
+  // ═══ MAP ═══
+  if(scr==="map"){
+    const next=progress;
+    return(
+      <div className="min-h-screen flex flex-col items-center p-3" style={{background:"#050510",...F}}>
+        <div className="w-full max-w-2xl">
+          <div className="flex items-center justify-between mb-2 px-1">
+            <div className="flex items-center gap-2"><Av av={av} size={28}/><span className="text-sm font-bold" style={{color:"#e5e7eb"}}>{name}</span></div>
+            <HPBar cur={hp} max={mxHp} w="80px"/>
+            <span className="text-sm" style={{color:"#fbbf24"}}>⭐ {score}</span>
+            <button onClick={()=>{doSave();setShowSave(!showSave);}} className="text-xs px-2 py-1 rounded" style={{background:"#1a1a2a",border:"1px solid #333",color:"#9ca3af",cursor:"pointer"}}>💾</button>
+          </div>
+          {showSave&&<div className="mb-2 p-3 rounded-lg text-center" style={{background:"#0a0a14",border:"1px solid #333"}}><div className="text-xs" style={{color:"#9ca3af"}}>Save code:</div><div className="text-2xl font-bold tracking-widest" style={{color:"#fbbf24",fontFamily:"monospace"}}>{sCode}</div><div className="text-xs mt-1" style={{color:"#555"}}>Write this down!</div></div>}
+          <div className="rounded-2xl p-3 mb-3" style={{background:"linear-gradient(135deg,#0a1a0a,#0a0a14,#1a0a14)",border:"1px solid #1e2e1e",minHeight:"220px"}}>
+            <svg viewBox="0 0 100 80" className="w-full" style={{height:"220px"}}>
+              {CHS.slice(0,-1).map((c,i)=>{const n=CHS[i+1];return<line key={i} x1={c.mx} y1={c.my} x2={n.mx} y2={n.my} stroke={i<next?"#22c55e44":"#222"} strokeWidth=".6" strokeDasharray={i<next?"none":"2 1"}/>;})}
+              {CHS.map((c,i)=>{const done=i<next,cur=i===next,fut=i>next;
+                return<g key={i} opacity={fut?0.2:1} className={cur?"cursor-pointer":""} onClick={()=>cur&&enterCh(i)}>
+                  {c.type==="battle"?<polygon points={`${c.mx},${c.my-4} ${c.mx+4},${c.my+3} ${c.mx-4},${c.my+3}`} fill={cur?"#ef4444":done?"#22c55e":"#333"} stroke={cur?"#ef4444":"none"} strokeWidth=".5">{cur&&<animate attributeName="fill-opacity" values=".6;1;.6" dur="1.5s" repeatCount="indefinite"/>}</polygon>
+                  :<circle cx={c.mx} cy={c.my} r={cur?3.5:2.5} fill={cur?"#fbbf24":done?"#22c55e":"#333"}>{cur&&<animate attributeName="r" values="3;4;3" dur="1.5s" repeatCount="indefinite"/>}</circle>}
+                  <text x={c.mx} y={c.my-6} textAnchor="middle" fill={done?"#22c55e88":cur?"#fbbf2488":"#333"} fontSize="3.5">{c.icon}</text>
+                  <text x={c.mx} y={c.my+8} textAnchor="middle" fill={done?"#22c55e66":cur?"#fbbf2466":"#22222288"} fontSize="1.8">{c.title}</text>
+                </g>;})}
+            </svg>
+          </div>
+          {next<CHS.length&&<button onClick={()=>enterCh(next)} className="w-full py-3 rounded-xl text-sm flex items-center justify-center gap-3" style={{background:"#fbbf2412",border:"1px solid #fbbf2444",color:"#fbbf24",cursor:"pointer",...F}}><span className="text-xl">{CHS[next].icon}</span><span className="font-bold">{CHS[next].title}</span> →</button>}
+          {next>=CHS.length&&<button onClick={()=>setScr("end")} className="w-full py-3 rounded-xl text-sm" style={btn(true)}>🏆 View Results</button>}
+          {pups.length>0&&<div className="mt-2 flex flex-wrap gap-1 justify-center">{pups.map((p,i)=><span key={i} className="px-2 py-0.5 rounded-full text-xs" style={{background:"#fbbf2411",border:"1px solid #fbbf2422",color:"#fbbf24"}}>{p.icon} {p.name}</span>)}</div>}
+        </div>
+      </div>
+    );
+  }
+
+  // ═══ STORY (Fire Emblem style) ═══
+  if(scr==="story"&&ch){
+    if(phase==="scene"&&ch.scenes?.[scI]){
+      const sc=ch.scenes[scI];
+      const isRival=sc.who==="rival",isYou=sc.who==="you";
+      const spkColor=isRival?rc:isYou?"#fbbf24":sc.c||"#9ca3af";
+      const spkName=isRival?r?.name:isYou?name:sc.name||"Narrator";
+      return(
+        <div className="min-h-screen flex flex-col" style={{background:`linear-gradient(180deg,${isRival?"#0a0005":isYou?"#050a10":"#08080a"} 0%,#0a0a14 100%)`,...F}}>
+          {/* Large portrait area */}
+          <div className="flex-1 relative flex items-end justify-center overflow-hidden" style={{minHeight:"260px"}}>
+            <div className="absolute inset-0" style={{background:`radial-gradient(ellipse at 50% 60%,${spkColor}12 0%,transparent 70%)`}}/>
+            {sc.who!=="narrator"&&<div style={{marginBottom:"-20px",animation:"breathe 3s ease-in-out infinite"}}>
+              {isYou?<Av av={av} size={180}/>:isRival?<Av av={{...av,skin:"#c4b090",hair:"short",hairColor:"#333",outfit:rc,acc:[],body:"medium"}} size={180}/>
+              :<div className="text-8xl" style={{filter:`drop-shadow(0 0 20px ${spkColor}44)`}}>{{edison:"📯",berliner:"💿",caruso:"🎤",bessie:"🎵",gordy:"🏢",moog:"🎹",herc:"🎧"}[sc.who]||"📖"}</div>}
+            </div>}
+            {sc.who==="narrator"&&<div className="flex-1"/>}
+          </div>
+          {/* Dialogue card at bottom */}
+          <div className="relative z-10 px-4 pb-4 pt-2" style={{animation:"slideUp .3s ease"}}>
+            <div className="rounded-2xl overflow-hidden" style={{background:"linear-gradient(180deg,#12121f,#0a0a14)",border:`1px solid ${spkColor}33`,boxShadow:`0 -4px 30px ${spkColor}11`}}>
+              <div className="px-4 py-2 flex justify-between" style={{borderBottom:`1px solid ${spkColor}22`}}>
+                <span className="text-sm font-bold" style={{color:spkColor}}>{spkName}</span>
+                <span className="text-xs" style={{color:"#555"}}>{scI+1}/{ch.scenes.length}</span>
+              </div>
+              <div className="px-5 py-4" style={{minHeight:"70px"}}>
+                <div className="text-base leading-relaxed" style={{color:"#e5e7eb"}}><VT text={rt(sc.text)}/></div>
+              </div>
+              <div className="px-4 pb-3 flex justify-end">
+                <button onClick={()=>{if(scI+1<ch.scenes.length)setScI(scI+1);else{setPhase("question");setQI(0);setAns(null);}}} className="px-5 py-2 rounded-xl text-sm" style={btn(true,spkColor)}>Next ▶</button>
+              </div>
+            </div>
+          </div>
+          <style>{`@keyframes breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}} @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}`}</style>
+        </div>
+      );
+    }
+    // Question phase
+    if(phase==="question"&&ch.qs){
+      const q=ch.qs[qI];
+      return(
+        <div className="min-h-screen flex flex-col justify-end" style={{background:"linear-gradient(180deg,#08080a,#0a0a14)",...F}}>
+          <div className="flex-1 flex items-end justify-center" style={{minHeight:"140px"}}>
+            <div style={{marginBottom:"-10px",animation:"breathe 3s ease-in-out infinite"}}><Av av={av} size={130}/></div>
+          </div>
+          <div className="px-4 pb-4 relative z-10" style={{animation:"slideUp .3s ease"}}>
+            <div className="rounded-2xl overflow-hidden" style={{background:"linear-gradient(180deg,#12121f,#0a0a14)",border:"1px solid #fbbf2433"}}>
+              <div className="px-4 py-2 flex justify-between" style={{borderBottom:"1px solid #fbbf2422"}}>
+                <span className="text-sm font-bold" style={{color:"#fbbf24"}}>{ch.title} · Q{qI+1}/{ch.qs.length}</span>
+                <HPBar cur={hp} max={mxHp} w="65px"/>
+              </div>
+              <div className="px-5 py-3">
+                <div className="text-sm mb-3 leading-relaxed" style={{color:"#e5e7eb"}}><VT text={q.q}/></div>
+                <div className="flex flex-col gap-2">{q.ch.map((c,i)=>{
+                  const ok=i===q.a,chosen=i===ans;
+                  let bg="#0a0a14",bd="#333",cl="#d1d5db";
+                  if(ans!==null){if(ok){bg="#22c55e18";bd="#22c55e";cl="#fff";}else if(chosen){bg="#ef444418";bd="#ef4444";cl="#ef4444";}else cl="#555";}
+                  return<button key={i} onClick={()=>answerQ(i)} disabled={ans!==null} className="text-left px-4 py-2.5 rounded-xl text-sm" style={{background:bg,border:`1px solid ${bd}`,color:cl,cursor:ans!==null?"default":"pointer",lineHeight:"1.5",...F}}>{String.fromCharCode(65+i)}. <VT text={c} nh={true}/></button>;
+                })}</div>
+                {ans!==null&&<div className="mt-3" style={{animation:"slideUp .3s ease"}}>
+                  <div className="p-3 rounded-xl text-sm leading-relaxed" style={{background:ans===q.a?"#22c55e08":"#ef444408",border:`1px solid ${ans===q.a?"#22c55e33":"#ef444433"}`,color:ans===q.a?"#86efac":"#fca5a5"}}>
+                    <strong>{ans===q.a?"✓ Correct! +50 pts":"✗ Not quite..."}</strong>
+                    <div className="mt-1" style={{color:"#d1d5db"}}><VT text={q.fb}/></div>
+                  </div>
+                  <button onClick={nextStep} className="block mx-auto mt-3 px-5 py-2 rounded-xl text-sm" style={btn(true)}>{qI+1<ch.qs.length?"Next Question →":"Continue →"}</button>
+                </div>}
+              </div>
+            </div>
+          </div>
+          <style>{`@keyframes breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}} @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}`}</style>
+        </div>
+      );
+    }
+  }
+
+  // ═══ BATTLE ═══
+  if(scr==="battle"&&ch&&bSt){
+    if(phase==="prelude"&&ch.prelude){
+      const ps=ch.prelude[scI]||ch.prelude[0];
+      const isR=ps.who==="rival";
+      return(
+        <div className="min-h-screen flex flex-col" style={{background:`linear-gradient(180deg,${isR?"#0a0005":"#050a10"},#0a0a14)`,...F}}>
+          <div className="flex-1 flex items-end justify-center overflow-hidden" style={{minHeight:"200px"}}>
+            <div style={{marginBottom:"-20px",animation:"breathe 3s ease-in-out infinite"}}>
+              {isR?<Av av={{...av,skin:"#c4b090",hair:"short",hairColor:"#333",outfit:rc,acc:[],body:"medium"}} size={180}/>:<Av av={av} size={180}/>}
+            </div>
+          </div>
+          <div className="px-4 pb-4 relative z-10" style={{animation:"slideUp .3s ease"}}>
+            <div className="rounded-2xl overflow-hidden" style={{background:"#12121f",border:`1px solid ${isR?rc:"#fbbf24"}33`}}>
+              <div className="px-4 py-2" style={{borderBottom:`1px solid ${isR?rc:"#fbbf24"}22`}}>
+                <span className="text-sm font-bold" style={{color:isR?rc:"#fbbf24"}}>{isR?r?.name:name}</span>
+                <span className="text-xs ml-2" style={{color:"#555"}}>{scI+1}/{ch.prelude.length}</span>
+              </div>
+              <div className="px-5 py-4"><div className="text-base leading-relaxed" style={{color:"#e5e7eb"}}>{rt(ps.text)}</div></div>
+              <div className="px-4 pb-3 flex justify-end">
+                <button onClick={()=>{if(scI+1<ch.prelude.length)setScI(scI+1);else{setPhase("fight");setScI(0);}}} className="px-5 py-2 rounded-xl text-sm" style={btn(true,isR?rc:undefined)}>
+                  {scI+1<ch.prelude.length?"Next ▶":"⚔️ Defend History"}
+                </button>
+              </div>
+            </div>
+          </div>
+          <style>{`@keyframes breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}} @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}`}</style>
+        </div>
+      );
+    }
+    if(phase==="fight"){
+      const q=ch.qs[bSt.qI];
+      return(
+        <div className="min-h-screen flex flex-col justify-between" style={{background:`linear-gradient(180deg,#0a0005,${rc}08,#050510)`,...F}}>
+          <div className="pt-3 px-4">
+            <div className="flex items-center gap-3 p-2 rounded-xl" style={{background:`${rc}08`,border:`1px solid ${rc}22`}}>
+              <Av av={{skin:"#c4b090",hair:"short",hairColor:"#333",outfit:rc,acc:[],body:"medium"}} size={32}/>
+              <div className="flex-1"><div className="text-xs font-bold" style={{color:rc}}>{r?.name}</div><HPBar cur={bSt.rHP} max={bSt.maxRHP} color={rc}/></div>
+            </div>
+          </div>
+          <div className="flex-1 flex items-center justify-center gap-4 px-4" style={{minHeight:"120px"}}>
+            <div style={{animation:"breathe 3s ease-in-out infinite"}}><Av av={av} size={90}/></div>
+            <span className="text-2xl" style={{color:"#ef444488"}}>⚔️</span>
+            <div style={{animation:"breathe 3s ease-in-out infinite"}}><Av av={{skin:"#c4b090",hair:"short",hairColor:"#333",outfit:rc,acc:[],body:"medium"}} size={90}/></div>
+          </div>
+          <div className="px-4 pb-4">
+            <div className="flex items-center gap-3 p-2 rounded-xl mb-2" style={{background:"#0a1a0a",border:"1px solid #22c55e22"}}>
+              <Av av={av} size={28}/>
+              <div className="flex-1"><span className="text-xs font-bold" style={{color:"#22c55e"}}>{name}</span><HPBar cur={hp} max={mxHp}/></div>
+              {combo>1&&<span className="text-xs px-1.5 py-0.5 rounded-full" style={{background:"#f59e0b22",color:"#f59e0b"}}>🔥x{combo}</span>}
+            </div>
+            <div className="rounded-2xl overflow-hidden" style={{background:"#0f0f1a",border:`1px solid ${rc}33`}}>
+              {!bSt.done&&<div className="p-4">
+                <div className="text-xs mb-1" style={{color:"#9ca3af"}}>Q{bSt.qI+1}/{ch.qs.length}</div>
+                <div className="text-sm mb-3 leading-relaxed" style={{color:"#e5e7eb"}}><VT text={q.q}/></div>
+                <div className="flex flex-col gap-2">{q.ch.map((c,i)=>{
+                  let bg="#0a0a14",bd="#333",cl="#d1d5db";
+                  if(bSt.ans!==null){if(i===q.a){bg="#22c55e18";bd="#22c55e";cl="#fff";}else if(i===bSt.ans){bg="#ef444418";bd="#ef4444";cl="#ef4444";}else cl="#555";}
+                  return<button key={i} onClick={()=>battleAns(i)} disabled={bSt.ans!==null} className="text-left px-4 py-2 rounded-xl text-sm" style={{background:bg,border:`1px solid ${bd}`,color:cl,cursor:bSt.ans!==null?"default":"pointer",...F}}><VT text={c} nh={true}/></button>;
+                })}</div>
+                {bSt.ans!==null&&<div className="mt-3 text-center">
+                  <div className="text-sm mb-2" style={{color:bSt.ans===q.a?"#22c55e":"#ef4444"}}>{bSt.ans===q.a?`✓ Hit! Dealt ${q.dmg}+ damage!`:`✗ Miss! ${r?.name} attacks!`}</div>
+                  <button onClick={nextB} className="px-5 py-2 rounded-xl text-sm" style={btn(true)}>{bSt.done?"🏆 Victory!":"Next Turn →"}</button>
+                </div>}
+              </div>}
+              {bSt.done&&<div className="p-4 text-center">
+                <div className="text-lg font-bold mb-2" style={{color:"#22c55e"}}>🏆 History Defended!</div>
+                <button onClick={nextB} className="px-5 py-2 rounded-xl text-sm" style={btn(true)}>Continue →</button>
+              </div>}
+            </div>
+          </div>
+          <style>{`@keyframes breathe{0%,100%{transform:translateY(0)}50%{transform:translateY(-3px)}}`}</style>
+        </div>
+      );
+    }
+  }
+
+  // ═══ SHOP ═══
+  if(scr==="shop") return(
+    <div className="min-h-screen flex items-center justify-center p-3" style={{background:"linear-gradient(180deg,#0a0005,#140a1a,#050510)",...F}}>
+      <div className="w-full max-w-md rounded-2xl p-6" style={{background:"#0f0f1a",border:"1px solid #1e1e3a"}}>
+        <div className="text-center text-lg font-bold mb-1" style={{color:"#a855f7"}}>⚡ Power-Up</div>
+        <div className="text-center text-xs mb-4" style={{color:"#9ca3af"}}>Choose one:</div>
+        <div className="flex flex-col gap-3">{shopO.map((p,i)=><button key={i} onClick={()=>pickPup(p)} className="flex items-center gap-3 p-4 rounded-xl text-left hover:scale-[1.01] transition-transform" style={{background:"#0a0a14",border:"1px solid #a855f733",cursor:"pointer"}}><span className="text-2xl">{p.icon}</span><div><div className="text-sm font-bold" style={{color:"#e5e7eb"}}>{p.name}</div><div className="text-xs" style={{color:"#9ca3af"}}>{p.desc}</div></div></button>)}</div>
+      </div>
+    </div>
+  );
+
+  // ═══ END ═══
+  if(scr==="end"){
+    const pct=totQ>0?Math.round((corr/totQ)*100):0;
+    let rank,rkc;
+    if(pct>=90){rank="★ MASTER DEFENDER ★";rkc="#fbbf24";}else if(pct>=75){rank="◆ SENIOR DEFENDER ◆";rkc="#c0c0c0";}else if(pct>=60){rank="● DEFENDER ●";rkc="#cd7f32";}else{rank="○ APPRENTICE ○";rkc="#22c55e";}
+    return(
+      <div className="min-h-screen flex items-center justify-center p-4" style={{background:"#050510",...F}}>
+        <div className="w-full max-w-md rounded-2xl p-7" style={{background:"#0f0f1a",border:"1px solid #1e1e3a",maxHeight:"92vh",overflowY:"auto"}}>
+          <div className="text-center text-xs tracking-widest mb-2" style={{color:"#fbbf2488"}}>HISTORY DEFENDED</div>
+          <h1 className="text-center text-2xl font-bold mb-2" style={{color:"#fbbf24"}}>MUSIC HISTORY DEFENDERS</h1>
+          <div className="flex justify-center my-3"><Av av={av} size={80}/></div>
+          <div className="text-center text-sm mb-3" style={{color:"#9ca3af"}}>{name} — Defender of the Timeline</div>
+          <div className="text-center text-3xl font-bold mb-1" style={{color:"#fbbf24"}}>⭐ {score}</div>
+          <div className="text-center text-xs mb-3" style={{color:"#9ca3af"}}>{corr}/{totQ} correct ({pct}%)</div>
+          <div className="text-center py-2 px-4 rounded-xl mx-auto mb-4" style={{border:`2px solid ${rkc}`,color:rkc,background:`${rkc}11`,maxWidth:"280px",fontWeight:"bold"}}>{rank}</div>
+          {pups.length>0&&<div className="mb-4 flex flex-wrap gap-1 justify-center">{pups.map((p,i)=><span key={i} className="px-2 py-0.5 rounded-full text-xs" style={{background:"#fbbf2411",border:"1px solid #fbbf2422",color:"#fbbf24"}}>{p.icon} {p.name}</span>)}</div>}
+          <div className="p-4 rounded-xl mb-4" style={{background:"#0a0a18",border:"1px dashed #00ffff33",color:"#67e8f9",fontSize:"13px",lineHeight:"1.7"}}>
+            <strong>THE BIG TAKEAWAY:</strong> From Edison's phonograph to the DAW on your computer, every innovation expanded who could create and experience music. The gatekeepers didn't disappear — but the tools ended up in more hands than ever.
+          </div>
+          <button onClick={()=>{setScr("title");setName("");}} className="block mx-auto px-6 py-2.5 rounded-xl text-sm" style={btn(true)}>🔄 Play Again</button>
+          <div className="text-center mt-5 text-xs" style={{color:"#222"}}>Music History Defenders · STEM Middle Academy · Created by Mr. Burgess</div>
+        </div>
+      </div>
+    );
+  }
+
+  return <div className="min-h-screen flex items-center justify-center" style={{background:"#050510",color:"#999",...F}}>Loading...</div>;
+}
